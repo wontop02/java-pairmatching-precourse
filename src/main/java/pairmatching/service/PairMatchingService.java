@@ -1,63 +1,53 @@
 package pairmatching.service;
-import static pairmatching.domain.Course.BACKEND;
 
-import camp.nextstep.edu.missionutils.Randoms;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import pairmatching.domain.Course;
 import pairmatching.domain.Crew;
+import pairmatching.domain.MatchingPairs;
+import pairmatching.domain.Mission;
 import pairmatching.domain.Pair;
+import pairmatching.repository.CrewRepository;
 
 public class PairMatchingService {
-    private static final String FRONT_FILE_PATH = "src/main/resources/frontend-crew.md";
-    private static final String BACK_FILE_PATH = "src/main/resources/backend-crew.md";
+    private static final String CAN_NOT_MATCHING = "같은 레벨에서 중복된 페어 매칭이 발생합니다.";
+    private static final String INVALID_CREW_SIZE = "페어 매칭은 2명 이상부터 가능합니다.";
+    private final CrewRepository crewRepository;
 
-    public PairMatchingService() {}
-
-    public List<Crew> loadShuffledCrews(Course course) {
-        String filePath = FRONT_FILE_PATH;
-        if (course == BACKEND) {
-            filePath = BACK_FILE_PATH;
-        }
-        List<String> names = readFile(filePath);
-        return names.stream()
-                .map(Crew::new)
-                .collect(Collectors.toList());
+    public PairMatchingService(CrewRepository crewRepository) {
+        this.crewRepository = crewRepository;
     }
 
-    private List<String> readFile(String filePath) {
-        List<String> names = new ArrayList<>();
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
-            String name;
-            while ((name = reader.readLine()) != null) {
-                names.add(name);
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException();
-        }
-        return shuffleNames(names);
-    }
-
-    private List<String> shuffleNames(List<String> names) {
-        return Randoms.shuffle(names);
-    }
-
-    public List<Pair> matchingPair(List<Crew> crews) {
+    public List<Pair> matchingTry(Mission mission, MatchingPairs matchingPairs) {
+        int i = 0;
         List<Pair> pairs = new ArrayList<>();
-        for (int i = 0; i < crews.size() - 1; i += 2) {
-            List<Crew> crew = new ArrayList<>();
-            crew.add(crews.get(i));
-            crew.add(crews.get(i + 1));
-            if (i + 2 == crews.size() - 1) {
-                crew.add(crews.get(i + 2));
-                i += 100;
+        while (i < 3) {
+            List<Crew> crews = crewRepository.loadShuffledCrews(mission.getCourse());
+            pairs = matchingPair(crews);
+            if (!matchingPairs.existDuplicatedPairs(mission, pairs)) {
+                break;
             }
-            Pair pair = new Pair(crew);
-            pairs.add(pair);
+            i++;
+        }
+        if (i >= 3) {
+            throw new IllegalArgumentException(CAN_NOT_MATCHING);
+        }
+        return pairs;
+    }
+
+    private List<Pair> matchingPair(List<Crew> crews) {
+        List<Pair> pairs = new ArrayList<>();
+        if (crews.size() <= 1) {
+            throw new IllegalStateException(INVALID_CREW_SIZE);
+        }
+        for (int i = 0; i < crews.size(); i += 2) {
+            if (i == crews.size() - 3) {
+                List<Crew> pair = new ArrayList<>(Arrays.asList(crews.get(i), crews.get(i + 1), crews.get(i + 2)));
+                pairs.add(new Pair(pair));
+                break;
+            }
+            List<Crew> pair = new ArrayList<>(Arrays.asList(crews.get(i), crews.get(i + 1)));
+            pairs.add(new Pair(pair));
         }
         return pairs;
     }

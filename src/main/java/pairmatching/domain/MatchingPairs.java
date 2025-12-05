@@ -57,4 +57,8 @@ public class MatchingPairs {
     public List<Pair> getPairsWithMission(Mission mission) {
         return new ArrayList<>(matchingPairs.get(mission));
     }
+
+    public void clear() {
+        matchingPairs.clear();
+    }
 }

@@ -16,10 +16,13 @@ public class OutputView {
                     + "############################################";
     private static final String PRINT_MATCHING_RESULT = "\n페어 매칭 결과입니다.";
     private static final String PRINT_RESET_COMPLETE = "\n초기화 되었습니다.\n";
-    private OutputView() {}
+
+    private OutputView() {
+    }
 
     public static void printErrorMessage(String message) {
         System.out.println(ERROR_PREFIX + message);
+        System.out.println();
     }
 
     public static void printMissions() {
